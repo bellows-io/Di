@@ -1,0 +1,8 @@
+{
+	"name"        : "bellows/di",
+	"description" : "Dependency injection library",
+	"license"     : "MIT",
+	"autoload": {
+		"psr-4": {"Di\\":"src/"}
+	}
+}
