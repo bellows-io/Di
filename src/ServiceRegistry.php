@@ -50,6 +50,7 @@ class ServiceRegistry {
 	}
 
 	public function get($key) {
+
 		if (isset($this->registryLazyData[$key])) {
 			$this->registryStoredData[$key] = call_user_func($this->registryLazyData[$key]);
 			unset ($this->registryLazyData[$key]);

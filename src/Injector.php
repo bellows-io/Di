@@ -37,35 +37,52 @@ class Injector {
 	public function invokeConstructor($classPath) {
 		$class = new \ReflectionClass($classPath);
 		$constructor = $class->getConstructor();
+
 		if (! $constructor) {
-			return $class->newInstance();
+			$instance = $class->newInstance();
+		} else {
+			$parameters = $constructor->getParameters();
+
+			$keys = array_map(function($p) {
+				return $p->getName();
+			}, $parameters);
+
+			$arguments = $this->getKeyValues($classPath, $keys);
+			$instance = $class->newInstanceArgs($arguments);
 		}
 
-		$parameters = $constructor->getParameters();
+		$methods = $class->getMethods();
+		foreach ($methods as $method) {
+			if (substr($method->getName(), 0, 5) == 'init_') {
+				$this->invokeReflectionMethod($instance, $method);
+			}
+		}
 
-		$keys = array_map(function($p) {
-			return $p->getName();
-		}, $parameters);
-
-		$arguments = $this->getKeyValues($classPath, $keys);
-		return $class->newInstanceArgs($arguments);
+		return $instance;
 	}
 
 	public function invokeMethod($object, $methodName) {
-		$className = get_class($object);
 		$method = new \ReflectionMethod($object, $methodName);
 		$class = new \ReflectionClass($object);
 
 		if (! $method->isPublic()) {
+			$className = get_class($object);
 			throw new \Exception("$className::$methodName is not publicly accessible");
 		}
 
+		return $this->invokeReflectionMethod($object, $method);
+	}
+
+	protected function invokeReflectionMethod($object, \ReflectionMethod $method) {
+		$className = get_class($object);
 		$parameters = $method->getParameters();
+
 		$keys = array_map(function($p) {
 			return $p->getName();
 		}, $parameters);
 
 		$arguments = $this->getKeyValues($className, $keys);
 		return $method->invokeArgs($object, $arguments);
+
 	}
 }
