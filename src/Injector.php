@@ -21,7 +21,7 @@ class Injector {
 		}
 	}
 
-	protected function getKeyValues($classPath, array $keys) {
+	protected function getKeyValues($classPath, array $keys, array $optionalArgs = array()) {
 
 		if (isset($this->aliases[$classPath])) {
 			foreach ($keys as $i => $key) {
@@ -31,7 +31,15 @@ class Injector {
 			}
 		}
 
-		return $this->registry->getMany($keys);
+		$output = [];
+		foreach ($keys as $key) {
+			if (isset($optionalArgs[$key])) {
+				$output[] = $optionalArgs[$key];
+			} else {
+				$output[] = $this->registry->get($key);
+			}
+		}
+		return $output;
 	}
 
 	public function invokeConstructor($classPath) {
@@ -61,7 +69,7 @@ class Injector {
 		return $instance;
 	}
 
-	public function invokeMethod($object, $methodName) {
+	public function invokeMethod($object, $methodName, array $optionalArgs = array()) {
 		$method = new \ReflectionMethod($object, $methodName);
 		$class = new \ReflectionClass($object);
 
@@ -70,10 +78,10 @@ class Injector {
 			throw new \Exception("$className::$methodName is not publicly accessible");
 		}
 
-		return $this->invokeReflectionMethod($object, $method);
+		return $this->invokeReflectionMethod($object, $method, $optionalArgs);
 	}
 
-	protected function invokeReflectionMethod($object, \ReflectionMethod $method) {
+	protected function invokeReflectionMethod($object, \ReflectionMethod $method, array $optionalArgs = array()) {
 		$className = get_class($object);
 		$parameters = $method->getParameters();
 
@@ -81,8 +89,8 @@ class Injector {
 			return $p->getName();
 		}, $parameters);
 
-		$arguments = $this->getKeyValues($className, $keys);
-		return $method->invokeArgs($object, $arguments);
+		$arguments = $this->getKeyValues($className, $keys, $optionalArgs);
 
+		return $method->invokeArgs($object, $arguments);
 	}
 }
